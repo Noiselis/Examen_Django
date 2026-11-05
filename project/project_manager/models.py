@@ -28,7 +28,7 @@ class Project(models.Model):
     Modèle pour représenter un projet
     """
     title = models.CharField(max_length=100, unique=True)
-    description = models.TextField(null=True)
+    description = models.TextField(blank=True)
     created_at = models.DateField(auto_now_add=True)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
