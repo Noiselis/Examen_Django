@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'password']
         read_only_fields = ['id']     # Non modifiable avec PUT ou PATCH
 
     def validate_username(self, value):
@@ -31,6 +31,11 @@ class UserSerializer(serializers.ModelSerializer):
                 "Le nom d'utilisateur ne peut pas contenir uniquement des chiffres."
             )
         return value
+
+    def validate_password(self, value):
+        """Verification du mot de passe et transformatiom avec make_password()"""
+        password = make_password(password=value)
+        return password
 
             
 

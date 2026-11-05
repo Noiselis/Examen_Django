@@ -4,6 +4,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.views.generic.edit import UpdateView, CreateView
 from django.contrib.auth.hashers import check_password, make_password, is_password_usable
+from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -62,22 +63,16 @@ class ModifyProjectAPIView(APIView):
     """Vue d'un projet pour que le proprietaire puisse le modifier"""
     def get_object(self, pk):
         project = Project.objects.get(pk=pk)
-        try :
+        try:
             return project
         except project.DoesNotExist():
             raise Http404("Projet introuvable")
 
     def get(self, request, pk, username):
         project = self.get_object(pk)
+        print(project)
         serializer = ProjectSerializer(project)
         return Response(serializer.data)
-
-    def put(self, request, pk, username):
-        serializer = ProjectSerializer(data=request.data)
-        if serializer.is_valid() and username == request.user.username:
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, username):
             project = self.get_object(pk)
@@ -126,9 +121,6 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['POST'], url_path='register', permission_classes = [permissions.AllowAny])
     def register_user(self, request):
         self.serializer_class = UserSerializer
-        print(request.data)
-        print(request.data['password'])
-        request.data['password'] = make_password(request.data['password'])
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
