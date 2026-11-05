@@ -6,12 +6,6 @@ from .models import User, Project
 #import re
 
 
-'''class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = UserCreationForm.Meta.fields + ("email",)'''
-
-
 class UserSerializer(serializers.ModelSerializer):
     """
     Serialiseur pour l'affichage et la modification du compte utilisateur de l'utilisateur connecte
@@ -19,12 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        #fields = ['id', 'username', 'email', 'password']
         fields = ['id', 'username', 'email']
         read_only_fields = ['id']     # Non modifiable avec PUT ou PATCH
-
-    #validate_password(password=User.password)
-    #make_password(password=request.password)
 
     def validate_username(self, value):
         """

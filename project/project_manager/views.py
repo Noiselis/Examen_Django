@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 from .models import Project, User
 from .serializers import ProjectSerializer, UserSerializer
 from .pagination import CustomPagination
-from .permissions import IsAuthorOrReadOnly, IsAdminOrIsAuthor, IsUser, IsAdminOrIsUser, IsOwner
+from .permissions import IsOwnerOrReadOnly, IsAdminOrIsOwnerOrReadOnly, IsUser, IsAdminOrIsUser, IsOwner
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -36,8 +36,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
     search_fields = ['title', 'description']
     ordering_fields = ['id', 'title', 'created_at', 'owner']
 
-    #permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
     def perform_create(self, serializer):
         """Assigne automatiquement l'utilisateur connecté comme proprietaire du projet"""
         serializer.save(owner=self.request.user)
@@ -52,7 +50,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         elif self.action == 'create':
             permission_classes = [permissions.IsAuthenticated]
         elif self.action == 'destroy':
-            permission_classes = [IsAdminOrIsAuthor]
+            permission_classes = [IsAdminOrIsOwnerOrReadOnly]
         elif self.action in ['put', 'patch']:
             permission_classes = [IsOwner]
         else:
@@ -60,41 +58,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
 
-
-    '''def get_project_owner(self):
-        """
-        Récupère le proprietaire du projet si la route est imbriquée.
-        Si la route n'est pas imbriquée, retourne None.
-        """
-        owner = self.kwargs.get('project_pk')
-        if project_pk is None:
-            return None
-        return get_object_or_404(Project, pk=project_pk)
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        project = self.get_parent_project()
-        if project is not None:
-            queryset = queryset.filter(project=project.pk)
-        return queryset
-
-    @action(
-        detail=True,
-        methods=['GET', 'PATCH', 'DELETE'],
-        permission_classes=[permissions.IsAuthenticated]
-    )
-    def modify_project(self, request):
-        """Récupère les détails d’un projet spécifique (lecture publique).
-        Permet également la modification ou suppression d’un projet, uniquement par son propriétaire (en fonction du username)."""
-        queryset = self.get_queryset().filter(pk=self.get_parent_project().pk)
-        self.serializer_class = ProjectSerializer
-        serializer = self.get_serializer(queryset)
-        return Response(serializer.data, status=status.HTTP_200_OK)'''
-
-
-
 class ModifyProjectAPIView(APIView):
-    """Vue pour que le proprietaire d'un projet puisse le modifier"""
+    """Vue d'un projet pour que le proprietaire puisse le modifier"""
     def get_object(self, pk):
         project = Project.objects.get(pk=pk)
         try :
@@ -108,12 +73,10 @@ class ModifyProjectAPIView(APIView):
         return Response(serializer.data)
 
     def put(self, request, pk, username):
-        project = self.get_object(pk)
         serializer = ProjectSerializer(data=request.data)
         if serializer.is_valid() and username == request.user.username:
             serializer.save()
             return Response(serializer.data)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, pk, username):
@@ -122,7 +85,6 @@ class ModifyProjectAPIView(APIView):
             if serializer.is_valid() and username == request.user.username:
                 serializer.save()
                 return Response(serializer.data)
-    
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, username):
@@ -131,12 +93,6 @@ class ModifyProjectAPIView(APIView):
             project.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         raise PermissionError('Vous devez etre un admin ou le proprietaire pour supprimer ce projet')
-
-
-
-
-
-    
 
 
 
@@ -149,8 +105,6 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
     lookup_field = 'username'
-
-    #permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
         """
@@ -181,66 +135,3 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    '''@action(detail=True, methods=['PUT', 'PATCH', 'DELETE'], permission_classes=[IsUserOrReadOnly])
-    def user_details(self, request):
-        user = self.get_object()
-        self.serializer_class = UserSerializer
-        serializer = UserSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)'''
-
-    
-
-
-
-    '''def get_parent_project(self):
-        """
-        Récupère le projet parent si la route est imbriquée.
-        Si la route n'est pas imbriquée, retourne None.
-        """
-        project_pk = self.kwargs.get('project_pk')
-        if project_pk is None:
-            return None
-        return get_object_or_404(Project, pk=project_pk)
-        
-        
-    def get_queryset(self):
-        queryset = Project.objects.all()
-        project = self.get_parent_project()
-        if project is not None:
-            queryset = queryset.filter(project=project.pk)
-        return queryset
-
-
-    @action(
-        detail=True,
-        methods=['GET', 'PUT', 'PATCH', 'DELETE']
-    )
-    def modify_project(self, request):
-        """Récupère les détails d’un projet spécifique (lecture publique).
-        Permet également la modification ou suppression d’un projet, uniquement par son propriétaire (en fonction du username)."""
-        queryset = self.get_queryset().filter(pk=self.get_parent_project().pk)
-        self.serializer_class = ProjectSerializer
-        serializer = self.get_serializer(queryset)
-        return Response(serializer.data, status=status.HTTP_200_OK)'''
-    
-
-
-
-'''class RegisterViewSet(CreateView):
-    """
-    ViewSet pour creer un compte
-    """
-    model = User
-    fields = ["username", "email", "password"]
-
-
-class ProjectUpdateViewSet(UpdateView):
-    """
-    ViewSet pour modifier ou supprimer un projet par son proprietaire
-    """
-    model = Project
-    fields = ["title", "description"]
-    template_name_suffix = "_update_form"'''
